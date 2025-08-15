@@ -8,5 +8,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@litdb/bun-sqlite": "^0.0.10"
   }
 }

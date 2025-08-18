@@ -1,39 +1,38 @@
-import type { Context } from 'hono'
-import { Database } from 'bun:sqlite'
-import { User } from '../types/index'
-import { password as bunPass } from 'bun'
+import { Context } from "hono";
+import { initDatabase } from "../db/db";
+import { User } from "../types";
 
-export async function registerUser(c: Context, db: Database) {
-      try {
-            const body = await c.req.json()
-            console.log("Incoming body:", body)
+const db = initDatabase();
 
-            const { username, password, role } = body
+// --- User CRUD ---
+export const getUsers = (c: Context) => {
+  const rows = db.query("SELECT id, username, role FROM users").all() as User[];
+  return c.json(rows);
+};
 
-            if (!username || !password) {
-                  return c.json({ error: "username and pass required" }, 400)
-            }
+export const getUserById = (c: Context) => {
+  const id = Number(c.req.param("id"));
+  const row = db.query("SELECT id, username, role FROM users WHERE id = ?").get(id) as User;
+  if (!row) return c.json({ error: "User not found" }, 404);
+  return c.json(row);
+};
 
-            if (role !== "user" && role !== "admin") {
-                  return c.json({ error: "Invalid role" }, 400)
-            }
+export const createUser = async (c: Context) => {
+  const body = await c.req.json<User>();
+  try {
+    db.query("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run(
+      body.username,
+      body.password,
+      body.role ?? "user"
+    );
+    return c.json({ message: "User created successfully" }, 201);
+  } catch (err) {
+    return c.json({ error: "Username already exists" }, 400);
+  }
+};
 
-            const existingUser = db.query("SELECT * FROM users WHERE username = ?").get(username) as User | undefined
-            if (existingUser) {
-                  return c.json({ error: "User exist with same username" }, 400)
-            }
-
-            const hashPass = await bunPass.hash(password)
-
-            db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [
-                  username,
-                  hashPass,
-                  role
-            ])
-
-            return c.json({ message: "User registered successfully" }, 201)
-      } catch (e) {
-            console.error("Register error:", e)
-            return c.json({ error: "Internal server error" }, 500)
-      }
-}
+export const deleteUser = (c: Context) => {
+  const id = Number(c.req.param("id"));
+  db.query("DELETE FROM users WHERE id = ?").run(id);
+  return c.json({ message: "User deleted successfully" });
+};

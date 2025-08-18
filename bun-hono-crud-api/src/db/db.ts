@@ -1,28 +1,32 @@
 import { Database } from 'bun:sqlite';
 
+let db: Database | null = null;
+
 export function initDatabase(): Database {
-  const db = new Database('bun_hono_crud.sqlite');
+  if (!db) {
+    db = new Database('bun_hono_crud.sqlite');
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT CHECK(role IN ('user','admin')) NOT NULL DEFAULT 'user'
-    )
-  `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT CHECK(role IN ('user','admin')) NOT NULL DEFAULT 'user'
+      )
+    `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tasks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `);
-
+    db.run(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+  }
   return db;
 }
 
+export { db };

@@ -1,35 +1,30 @@
-import { Hono } from 'hono'
-import { initDatabase } from '../src/db/db'
-import { logger } from 'hono/logger'
-import { cors } from 'hono/cors'
-import { z } from 'zod'
-import { zValidator } from '@hono/zod-validator'
-import { registerUser } from './controller/auth'
-const app = new Hono()
-const db = initDatabase()
+import { Hono } from "hono";
+import { getUsers, getUserById, createUser, deleteUser } from "./controller/auth";
+import { getTasks, getTaskById, createTask, updateTask, deleteTask } from "./controller/task";
+import { initDatabase } from "./db/db";
 
-app.use("*", cors())
-app.use("*", logger())
+// Init DB once
+initDatabase();
 
-//input validation
-const registerSchema = z.object({
-  username: z.string().min(3).max(25),
-  password: z.string().min(5),
-  role: z.enum(['user', 'admin']).optional()
-})
-app.post('register-user', zValidator('json', registerSchema), (c) => registerUser(c, db)
-)
-app.get('/', (c) => {
-  return c.text('Hello hello user and task management!')
-})
+const app = new Hono();
 
-app.get('/db-test', (c) => {
-  const result = db.query('SELECT sqlite_version()').get()
+// Root
+app.get("/", (c) => c.text("Bun + Hono + SQLite CRUD API 🚀"));
 
-  return c.json({
-    message: "Database connected successfully",
-    sqlite_version: result
-  })
-})
+// User routes
+app.get("/users", getUsers);
+app.get("/users/:id", getUserById);
+app.post("/users", createUser);
+app.delete("/users/:id", deleteUser);
 
-export default app
+// Task routes
+app.get("/tasks", getTasks);
+app.get("/tasks/:id", getTaskById);
+app.post("/tasks", createTask);
+app.put("/tasks/:id", updateTask);
+app.delete("/tasks/:id", deleteTask);
+
+export default {
+  port: 3000,
+  fetch: app.fetch,
+};
